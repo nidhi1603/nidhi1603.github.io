@@ -1,0 +1,23 @@
+---
+import Base from '../../layouts/Base.astro';
+
+type Post = { frontmatter: { title: string; date: string; summary: string }; url: string };
+const posts = Object.values(import.meta.glob<Post>('./*.md', { eager: true })).sort(
+  (a, b) => +new Date(b.frontmatter.date) - +new Date(a.frontmatter.date),
+);
+---
+
+<Base title="Writing · Nidhi Rajani" description="Short technical write-ups: what I tried, what the evidence said, and what I'd do differently.">
+  <section class="narrow post">
+    <p class="eyebrow">Writing</p>
+    <h1>What I tried, and what the evidence said</h1>
+    <ul class="post-list">
+      {posts.map((p) => (
+        <li class="card">
+          <a href={p.url}>{p.frontmatter.title}</a>
+          <p class="muted small" style="margin:0.5rem 0 0">{p.frontmatter.summary}</p>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>

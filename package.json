@@ -1,0 +1,16 @@
+{
+  "name": "nidhi1603.github.io",
+  "version": "1.0.0",
+  "description": "Portfolio site for Nidhi Rajani; every number links to its source at a pinned commit.",
+  "scripts": {
+    "data": "node tools/build-data.mjs && node tools/build-profile.mjs",
+    "dev": "npm run data && astro dev",
+    "build": "npm run data && astro build && node tools/check-site.mjs",
+    "preview": "astro preview"
+  },
+  "type": "module",
+  "dependencies": {
+    "astro": "^7.3.8"
+  },
+  "private": true
+}

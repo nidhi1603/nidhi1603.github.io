@@ -1,0 +1,121 @@
+---
+import Base from '../../layouts/Base.astro';
+import Claim from '../../components/Claim.astro';
+import data from '../../data/facts.json';
+
+const repo = 'https://github.com/nidhi1603/post-training-lab';
+const pct = (v: number, max: number) => `${((v / max) * 100).toFixed(1)}%`;
+const ladder = data.tables.ptlLadder.rows.map((r) => ({
+  k: r.cells[0].replace(/\s*\(.*\)/, ''),
+  base: r.cells[1],
+  lift: r.cells[2],
+  url: r.url,
+}));
+const maxLift = Math.max(...ladder.map((r) => parseFloat(r.lift)));
+---
+
+<Base
+  title="Post-Training Lab · Nidhi Rajani"
+  description="A case study: SFT vs DPO vs GRPO for code repair on a 1.5B model, under the OctoPack paper's frozen HumanEvalFix protocol. The data won, and a random-reward control showed the RL gain was noise."
+>
+  <article>
+    <header class="wrap case-hero hero">
+      <p class="eyebrow">Case study · post-training</p>
+      <h1>Post-Training Lab</h1>
+      <p class="lede">
+        SFT vs DPO vs GRPO for code repair on Qwen2.5-Coder-1.5B, measured under the OctoPack paper's own frozen
+        HumanEvalFix protocol, with no benchmark-derived training data. The data won, the RL didn't, and a random-reward
+        control is how I know.
+      </p>
+      <div class="kpis">
+        <div class="kpi"><span class="v"><Claim k="ptl.mean" /></span><span class="l">pass@1, 3-seed mean (target: OctoCoder's <a href="https://arxiv.org/abs/2308.07124">30.4%</a>)</span></div>
+        <div class="kpi"><span class="v"><Claim k="ptl.worst" /></span><span class="l">worst seed, still above the target</span></div>
+        <div class="kpi"><span class="v"><Claim k="ptl.cost" /></span><span class="l">to generate <Claim k="ptl.bugs" /> certified training bugs</span></div>
+        <div class="kpi"><span class="v"><Claim k="ptl.random" /></span><span class="l">pass@1, real minus random-reward GRPO: no RL effect</span></div>
+      </div>
+      <div class="contact">
+        <a class="btn primary" href={repo}>Repo</a>
+        <a class="btn" href={`${repo}/blob/main/docs/LAB_NOTEBOOK.md`}>Lab notebook</a>
+        <a class="btn" href="/results/#ptl">Results explorer</a>
+      </div>
+    </header>
+
+    <div class="narrow">
+      <section class="case-section reveal">
+        <h2>The target, fixed before training</h2>
+        <p>
+          The untrained 1.5B model scored <Claim k="ptl.base" /> pass@1 on HumanEvalFix under the paper's protocol. I locked
+          the target before any training: beat OctoCoder, which reports <a href="https://arxiv.org/abs/2308.07124">30.4%</a>.
+          OctoCoder is StarCoder instruction-tuned, a <a href="https://arxiv.org/abs/2305.06161">15.5B</a>-parameter model.
+          The claim standard was strict, too: the mean <em>and</em> every seed above the line.
+        </p>
+        <ol class="pipeline" aria-label="How the study was run">
+          <li><strong>Frozen ruler</strong><span>The paper's HumanEvalFix protocol, locked and committed before training</span></li>
+          <li><strong>Data factory</strong><span>An LLM breaks clean functions; each bug must compile and fail a real test</span></li>
+          <li><strong>Three arms</strong><span>SFT, DPO and GRPO at matched compute, with paired seeds</span></li>
+          <li><strong>Controls</strong><span>A random-reward GRPO run, and three seeds for the headline</span></li>
+          <li><strong>Scaffold test</strong><span>Best-of-n with test execution and self-repair, on both base and trained models</span></li>
+        </ol>
+      </section>
+
+      <section class="case-section reveal">
+        <h2>The result</h2>
+        <div class="bars" role="group" aria-label="HumanEvalFix pass@1">
+          <div class="bar"><span class="label">Qwen2.5-Coder-1.5B, untrained</span><span class="track"><span class="fill" style={`--w:${pct(17.59, 50)}`}></span></span><span class="val"><Claim k="ptl.base" /></span></div>
+          <div class="bar ref"><span class="label">OctoCoder (target)</span><span class="track"><span class="fill" style={`--w:${pct(30.4, 50)}`}></span></span><span class="val"><a class="claim" href="https://arxiv.org/abs/2308.07124">30.4%</a></span></div>
+          <div class="bar ours"><span class="label">Ours, worst seed</span><span class="track"><span class="fill" style={`--w:${pct(34.51, 50)}`}></span></span><span class="val"><Claim k="ptl.worst" /></span></div>
+          <div class="bar ours"><span class="label">Ours, 3-seed mean</span><span class="track"><span class="fill" style={`--w:${pct(38.63, 50)}`}></span></span><span class="val"><Claim k="ptl.mean" /></span></div>
+          <div class="bar ours"><span class="label">Ours, best seed</span><span class="track"><span class="fill" style={`--w:${pct(42.65, 50)}`}></span></span><span class="val"><Claim k="ptl.best" /></span></div>
+        </div>
+        <p class="muted small">Bars run from 0 to 50%. Every value links to the line it comes from.</p>
+      </section>
+
+      <section class="case-section reveal">
+        <h2>What drove it: data, not RL</h2>
+        <p>
+          The winning change was data. For <Claim k="ptl.cost" /> in API calls, an LLM broke clean functions into <Claim k="ptl.bugs" /> bugs
+          written in the benchmark's docstring style, covering all <Claim k="ptl.functions" /> source functions. Every bug
+          had to compile and fail a real test before it counted.
+        </p>
+        <p>
+          The RL arms tied or nudged. To check the nudge, I ran GRPO with a <em>random</em> reward. It reproduced the gain:
+          real minus random came to <Claim k="ptl.random" /> pass@1, which is zero within noise. So I credit the data, not
+          the RL signal, at this scale.
+        </p>
+      </section>
+
+      <section class="case-section reveal">
+        <h2>Fine-tune or scaffold? The retry ladder</h2>
+        <p>
+          Next I wrapped both the base and the trained model in the same verifier-guided scaffold: sample several fixes,
+          run each problem's tests in a sandbox, repair on failure. Training's value shrinks as the scaffold gets more tries:
+        </p>
+        <div class="bars" role="group" aria-label="Training lift by try budget">
+          {ladder.map((r) => (
+            <div class="bar ours">
+              <span class="label">{r.k === '1' ? '1 try' : `${r.k} tries`} <span class="muted">(base {r.base})</span></span>
+              <span class="track">
+                <span class="fill" style={`--w:${pct(parseFloat(r.lift), maxLift)}`}></span>
+              </span>
+              <span class="val"><a class="claim" href={r.url}>{r.lift} pts</a></span>
+            </div>
+          ))}
+        </div>
+        <div class="callout">
+          With enough verified retries, the untrained model plus the scaffold reaches <Claim k="ptl.baseagent" />, and
+          training adds only <Claim k="ptl.lift18" /> points, within noise. <strong>Fine-tune when you can't verify; scaffold
+          when you can.</strong>
+        </div>
+      </section>
+
+      <section class="case-section reveal">
+        <h2>Limits</h2>
+        <ul class="limits">
+          <li>One benchmark (164 problems), one model family for the headline.</li>
+          <li>The comparison sets a <Claim k="ptl.caveat" /> model; newer bases start stronger.</li>
+          <li>The target is OctoCoder's published number, not a re-run of OctoCoder under my harness.</li>
+        </ul>
+      </section>
+    </div>
+  </article>
+</Base>

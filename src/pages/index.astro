@@ -1,0 +1,185 @@
+---
+import Base from '../layouts/Base.astro';
+import Claim from '../components/Claim.astro';
+import data from '../data/facts.json';
+
+const lc = data.facts['gh.langchain'] as { merged: string };
+const af = data.facts['gh.airflow'] as { merged: string };
+---
+
+<Base
+  title="Nidhi Rajani · AI Engineer: LLM post-training, agents & evals"
+  description="AI Engineer building LLM systems and the evaluations that decide whether they work. Every number on this site links to its source."
+>
+  <section class="hero wrap">
+    <p class="eyebrow">AI Engineer · Forward Deployed Engineer · ML Engineer</p>
+    <h1>I build LLM systems, and the evaluations that tell me whether they work.</h1>
+    <p class="lede">
+      M.S. in Data Science from the University at Buffalo (May 2026). Before that, about a year as a customer-facing
+      Solutions Engineer at Flipkart (Walmart). Now fine-tuning and evaluating LLMs at Cardio AI.
+    </p>
+
+    <div class="proofs">
+      <article class="proof">
+        <span class="big"><Claim k="ptl.mean" /></span>
+        <p>
+          HumanEvalFix pass@1 from a fine-tuned <strong>1.5B</strong> model (3-seed mean). OctoCoder, about ten times
+          larger, reports <a href="https://arxiv.org/abs/2308.07124">30.4%</a>.
+        </p>
+      </article>
+      <article class="proof">
+        <span class="big"><Claim k="aep.leak" /></span>
+        <p>
+          dev tasks in which a public agent benchmark leaked answer-key data to the agent. Found by my
+          answer-independence check; reported as <Claim k="gh.issue574" />.
+        </p>
+      </article>
+      <article class="proof">
+        <span class="big">Merged</span>
+        <p>
+          into LangChain: support for OpenAI's <code>apply_patch</code> tool in langchain-openai, <Claim k="gh.langchain" />, merged {lc.merged}.
+        </p>
+      </article>
+    </div>
+
+    <div class="contact" id="contact">
+      <a class="btn primary" href="mailto:nidhi.rajani.ds@gmail.com">Email me</a>
+      <a class="btn" href="https://www.linkedin.com/in/nidhirajani">LinkedIn</a>
+      <a class="btn" href="https://github.com/nidhi1603">GitHub</a>
+      <span class="where">Buffalo, NY (Eastern) · open to US-remote and to relocating to the SF Bay Area, NYC or Seattle</span>
+    </div>
+  </section>
+
+  <section class="wrap" id="work" aria-labelledby="work-h">
+    <p class="eyebrow">Two deep dives</p>
+    <h2 id="work-h">Work I can defend line by line</h2>
+    <div class="grid2" style="margin-top:1.5rem">
+      <article class="card feature reveal">
+        <span class="tag">Agent evaluation</span>
+        <h3>Agent Eval Platform</h3>
+        <p class="muted">
+          Can a harness make the same model complete more banking tasks than the benchmark's standard agent? I built
+          the evaluation machinery to answer that honestly, on Sierra's tau2-bench.
+        </p>
+        <ul class="stats">
+          <li>False "transfer under way" replies: <Claim k="aep.claims" /> in a replay test, after one feedback rewrite</li>
+          <li>Task completion: <Claim k="aep.final" />. No gain, and reported that way</li>
+          <li><Claim k="aep.defects" /> measurement and harness defects found and fixed, each with a regression test</li>
+        </ul>
+        <div class="links">
+          <a href="/work/agent-eval-platform/">Read the case study →</a>
+          <a href="https://github.com/nidhi1603/agent-eval-platform">Repo</a>
+        </div>
+      </article>
+      <article class="card feature reveal">
+        <span class="tag">Post-training</span>
+        <h3>Post-Training Lab</h3>
+        <p class="muted">
+          SFT vs DPO vs GRPO for code repair on Qwen2.5-Coder-1.5B, measured under the OctoPack paper's frozen
+          HumanEvalFix protocol, with no benchmark-derived training data.
+        </p>
+        <ul class="stats">
+          <li><Claim k="ptl.mean" /> pass@1 (3-seed mean); the worst seed, <Claim k="ptl.worst" />, still clears the target</li>
+          <li>The data won: a <Claim k="ptl.cost" /> generator produced <Claim k="ptl.bugs" /> execution-certified bugs</li>
+          <li>RL's gain was matched by a random-reward control (real minus random: <Claim k="ptl.random" /> pass@1)</li>
+        </ul>
+        <div class="links">
+          <a href="/work/post-training-lab/">Read the case study →</a>
+          <a href="https://github.com/nidhi1603/post-training-lab">Repo</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap" aria-labelledby="more-h">
+    <p class="eyebrow">More work</p>
+    <h2 id="more-h">Fine-tuning, agents, open source</h2>
+    <div class="grid4" style="margin-top:1.5rem">
+      <article class="card reveal">
+        <span class="tag">Fine-tuning</span>
+        <h3>Code-review LoRA</h3>
+        <p class="muted small">
+          Reasoning-trace SFT on Qwen2.5-Coder-7B that wins <Claim k="scr.win" /> of head-to-head reviews against the base
+          model (<Claim k="scr.ci" />) and cuts hallucinations <Claim k="scr.halluc" />. Three rounds of RL on top didn't
+          beat it, and the repo says so.
+        </p>
+        <div class="links"><a href="https://github.com/nidhi1603/sft-code-review">Repo</a></div>
+      </article>
+      <article class="card reveal">
+        <span class="tag">Agents · integrations</span>
+        <h3>ProofCart</h3>
+        <p class="muted small">
+          Hackathon agent across Slack, Notion and Stripe (test mode): reads supplier threads, waits for the owner's
+          approval in Slack, pays, records. Exactly one charge under crash or duplicate (<Claim k="pc.crash" /> against an
+          ablation); <Claim k="pc.evals" /> deterministic regression cases.
+        </p>
+        <div class="links">
+          <a href="https://github.com/nidhi1603/proofcart">Repo</a>
+          <a href="https://www.loom.com/share/7d9e7c2100a1404fbc9be4f16a613b29">Demo video</a>
+        </div>
+      </article>
+      <article class="card reveal">
+        <span class="tag">Group project · my parts</span>
+        <h3>Sokratic tutor</h3>
+        <p class="muted small">
+          Multi-agent Socratic tutor (UB). I built the first RAG pipeline (MRR <Claim k="sok.mrrBase" /> → <Claim k="sok.mrr" />), K-of-N partial reach in the reach gate, Haiku behaviour classifiers (<Claim k="sok.cls" /> on a check set) and an end-to-end regression harness. Reach rate: <Claim k="sok.reach" /> across <Claim k="sok.convs" />.
+        </p>
+        <div class="links">
+          <a href="https://github.com/arun-gg-1996/sokratic-lm/commits/main?author=nidhi1603">My commits</a>
+          <a href="https://github.com/arun-gg-1996/sokratic-lm/commits/nidhi/reach-gate-and-override-analysis?author=nidhi1603">My branch</a>
+        </div>
+      </article>
+      <article class="card reveal">
+        <span class="tag">Open source</span>
+        <h3>LangChain · Apache Airflow</h3>
+        <p class="muted small">
+          LangChain: OpenAI's <code>apply_patch</code> built-in tool for langchain-openai, with unit tests (<Claim k="gh.langchain" />, merged {lc.merged}). Airflow: a dependency fix in the AWS provider (<Claim k="gh.airflow" />, merged {af.merged}).
+        </p>
+        <div class="links">
+          <a href="https://github.com/langchain-ai/langchain/pull/37157">LangChain PR</a>
+          <a href="https://github.com/apache/airflow/pull/64330">Airflow PR</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap" aria-labelledby="how-h">
+    <p class="eyebrow">How I work</p>
+    <h2 id="how-h">Three habits the evidence shows</h2>
+    <div class="principles" style="margin-top:1.5rem">
+      <div class="reveal">
+        <h3>Freeze the ruler before looking</h3>
+        <p>
+          Every paid experiment had a written plan and decision rule before any spend. At one run per task, an
+          identical agent comes out ahead <Claim k="aep.noise" /> of the time, so gates sit above the noise.
+        </p>
+      </div>
+      <div class="reveal">
+        <h3>Distrust my own numbers</h3>
+        <p>
+          <Claim k="aep.defects" /> defects found and fixed in the agent-eval pipeline: one in the public benchmark,
+          the rest in my own code. Blind reviewers once agreed on three verifications that a later code check showed were invalid.
+        </p>
+      </div>
+      <div class="reveal">
+        <h3>Report what didn't work</h3>
+        <p>
+          My harness fixed the behaviours it targeted but didn't raise completion (<Claim k="aep.final" />). In the lab, a
+          random-reward control matched RL's gain, so I credit the data, not the RL.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" aria-labelledby="explore-h">
+    <div class="card feature reveal">
+      <p class="eyebrow">Results explorer</p>
+      <h2 id="explore-h">Every experiment, defect and score in one place</h2>
+      <p class="muted">
+        Filter and sort the full record: ten full-conversation batches, fifteen targeted tests, thirteen defects,
+        the post-training retry ladder and the code-review evals. Each row links to the line it was read from.
+      </p>
+      <div class="links"><a class="btn primary" href="/results/">Open the explorer</a> <a class="btn" href="/writing/">Read the write-ups</a></div>
+    </div>
+  </section>
+</Base>

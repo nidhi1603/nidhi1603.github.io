@@ -1,0 +1,149 @@
+---
+import Base from '../../layouts/Base.astro';
+import Claim from '../../components/Claim.astro';
+const repo = 'https://github.com/nidhi1603/agent-eval-platform';
+---
+
+<Base
+  title="Agent Eval Platform · Nidhi Rajani"
+  description="A case study: an evaluation platform and runtime harness for a tool-using banking agent on tau2-bench. What it measured, what it found, and why the honest answer was 'no gain'."
+>
+  <article>
+    <header class="wrap case-hero hero">
+      <p class="eyebrow">Case study · agent evaluation</p>
+      <h1>Agent Eval Platform</h1>
+      <p class="lede">
+        Can a harness around the same model complete more banking tasks than the benchmark's standard agent? I built the
+        machinery to answer that honestly. On this evidence the answer is <strong>not shown</strong>, and the machinery
+        found real problems along the way, including one in the benchmark itself.
+      </p>
+      <div class="kpis">
+        <div class="kpi"><span class="v"><Claim k="aep.leak" /></span><span class="l">dev tasks leaking answer data, reported upstream</span></div>
+        <div class="kpi"><span class="v"><Claim k="aep.defects" /></span><span class="l">measurement and harness defects found and fixed</span></div>
+        <div class="kpi"><span class="v"><Claim k="aep.claims" /></span><span class="l">false "transfer under way" replies, in replay</span></div>
+        <div class="kpi"><span class="v"><Claim k="aep.final" /></span><span class="l">tasks completed, harness vs standard: no gain</span></div>
+      </div>
+      <div class="contact">
+        <a class="btn primary" href={repo}>Repo</a>
+        <a class="btn" href={`${repo}/blob/main/docs/REPORT.md`}>Technical report</a>
+        <a class="btn" href="/results/">Every result, filterable</a>
+      </div>
+    </header>
+
+    <div class="narrow">
+      <section class="case-section reveal">
+        <h2>The question and the setup</h2>
+        <p>
+          The benchmark is Sierra's τ-Knowledge banking domain in tau2-bench v1.0.1, pinned and checked on every run. A
+          simulated customer asks for help. The agent has to find the right procedure in the bank's knowledge base, unlock
+          the tools it names, verify the customer and act within policy. Grading is official: the final database state.
+        </p>
+        <p>
+          I held the model fixed (gpt-5-mini) and changed only what sits around it, so any difference is the harness.
+          Experiments ran on the development split. The <Claim k="aep.heldout" /> were never run, so they remain a clean
+          test.
+        </p>
+      </section>
+
+      <section class="case-section reveal">
+        <h2>What I built</h2>
+        <p>Six layers, each there to make one number trustworthy:</p>
+        <ol class="flow" aria-label="System layers, from model calls to review">
+          <li>
+            <span class="layer">Models</span>
+            Agent, simulated customer and embeddings, all called through LiteLLM.
+            <span class="chips"><span>gpt-5-mini (agent)</span><span>gpt-5.2 (customer)</span><span>text-embedding-3-large</span></span>
+          </li>
+          <li>
+            <span class="layer">Spend admission control</span>
+            Before every call, reserve its worst-case cost; refuse the call if the cap can't cover it; afterwards, settle
+            at the billed cost. A model with no recorded price can't be called at all.
+          </li>
+          <li>
+            <span class="layer">Benchmark, pinned</span>
+            tau2-bench's orchestrator, bank tools, database and grader, verified against a fixed commit and task-file hash.
+            The agent's shell tool runs in a sandbox I tightened after canary tests found gaps in the default setup.
+          </li>
+          <li>
+            <span class="layer">Runtime harness</span>
+            Components behind separate flags, each with a negative control: replaying all reference solutions kept the
+            same reward in <Claim k="aep.controls" />.
+            <span class="chips"><span>tool adapter</span><span>checks before actions</span><span>capability search</span><span>verification evidence</span><span>disclosure check</span><span>nudges</span></span>
+          </li>
+          <li class="hit">
+            <span class="layer">Evaluation layer</span>
+            Frozen plans with decision rules written before any spend, paired and balanced batches with a resume journal,
+            cheap replay probes, and an answer-independence check that replays everything the agent saw against an
+            answer-erased copy of the task.
+            <span class="note">→ This found the benchmark leak.</span>
+          </li>
+          <li>
+            <span class="layer">Review</span>
+            Blind exports, two independent model readers plus an adjudicator, and verdict functions frozen before the run.
+          </li>
+        </ol>
+      </section>
+
+      <section class="case-section reveal">
+        <h2>What happened</h2>
+        <p>
+          The components moved the behaviour they targeted. Transfers per conversation fell (<Claim k="aep.transfers" />).
+          Capability search made the account-lookup document reachable in far more of the conversations that needed it (<Claim k="aep.reach" />), though reachable is not the same as used. One rewrite of the feedback after a held
+          action cut false "transfer under way" replies (<Claim k="aep.claims" />) in a replay test.
+        </p>
+        <p>
+          Completed tasks did not follow. The best comparison came out <Claim k="aep.best" /> completed pairs (standard
+          vs harness). That missed the pre-registered
+          gate, and its corrected safety audit found <Claim k="aep.violations" />. The final comparison was <Claim k="aep.final" />.
+        </p>
+        <div class="callout">
+          <strong>Why I didn't call 8 of 22 a win.</strong> At one conversation per task, an identical copy of the agent
+          comes out ahead <Claim k="aep.noise" /> of the time. Without a gate frozen before looking, that result becomes a
+          "60% improvement" slide.
+        </div>
+      </section>
+
+      <section class="case-section reveal">
+        <h2>What the evaluation layer caught</h2>
+        <ul>
+          <li>
+            <strong>A leak in the benchmark.</strong> One listing tool exposed reference-derived data in <Claim k="aep.leak" /> dev tasks. I reported it as <Claim k="gh.issue574" />, with a reproducer that needs no
+            model calls and a local fix that leaves every grade unchanged.
+          </li>
+          <li>
+            <strong>Bugs in my own pipeline.</strong> Of the <Claim k="aep.defects" /> defects, one was the benchmark's; the
+            rest were mine. Two examples: a per-run cost cap enforced on the upper bound silently cut off only the longer
+            arm, and a verification rule accepted values the customer was only echoing back.
+          </li>
+          <li>
+            <strong>A provenance bug you can run.</strong> An intercepted draft was counted as "shown to the customer", so a
+            valid verification was refused. <code>make demo-provenance</code> reproduces it and the fix, offline, for $0.
+          </li>
+        </ul>
+      </section>
+
+      <section class="case-section reveal">
+        <h2>Why I stopped, and what I'd do differently</h2>
+        <ul class="limits">
+          <li>
+            <strong>Reach.</strong> The last component could directly affect only <Claim k="aep.reachP004" /> tasks'
+            scores. I chose it because it was tractable, not because it mattered. Next time I'd rank ideas by reach first.
+          </li>
+          <li>
+            <strong>Acting, not finding.</strong> In <Claim k="aep.policyrule" /> agreed policy-step failures, the rule and
+            the evidence were both already in the agent's context. Retrieval wasn't the only bottleneck.
+          </li>
+          <li>
+            <strong>Power.</strong> One conversation per task can't detect small effects. I'd estimate power before
+            building, and use more trials per task.
+          </li>
+        </ul>
+        <p class="muted small">
+          Limits: one model, one domain, development tasks only. None of these results is a leaderboard number; the
+          official protocol is every task, four times over. Review labels come from blind model readers, not human
+          annotators.
+        </p>
+      </section>
+    </div>
+  </article>
+</Base>

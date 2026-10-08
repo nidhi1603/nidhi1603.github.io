@@ -1,0 +1,73 @@
+---
+import '../styles/global.css';
+import data from '../data/facts.json';
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
+const here = Astro.url.pathname;
+const nav: [string, string][] = [
+  ['Work', '/#work'],
+  ['Results', '/results/'],
+  ['Writing', '/writing/'],
+  ['Contact', '/#contact'],
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e1014" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Nidhi Rajani" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
+    {beacon && (
+      <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: beacon })} />
+    )}
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="wrap nav" aria-label="Main">
+        <a class="brand" href="/">Nidhi Rajani</a>
+        <ul>
+          {nav.map(([label, href]) => (
+            <li><a href={href} aria-current={here.startsWith(href) && href !== '/#work' && href !== '/#contact' ? 'page' : undefined}>{label}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap row">
+        <div>
+          <p><strong>Nidhi Rajani</strong>, AI Engineer · Buffalo, NY</p>
+          <p>US work authorization: F-1 OPT, eligible for the 24-month STEM extension (E-Verify employer). I'll need H-1B sponsorship long-term.</p>
+          <p>Every number on this site links to the exact line it comes from, at a fixed commit; the build fails if a number and its source disagree. Last checked {data.generated}.</p>
+        </div>
+        <div>
+          <p><a href="mailto:nidhi.rajani.ds@gmail.com">nidhi.rajani.ds@gmail.com</a></p>
+          <p><a href="https://www.linkedin.com/in/nidhirajani">LinkedIn</a> · <a href="https://github.com/nidhi1603">GitHub</a></p>
+          <p><a href="https://github.com/nidhi1603/nidhi1603.github.io">Site source</a></p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

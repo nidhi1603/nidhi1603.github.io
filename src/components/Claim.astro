@@ -1,0 +1,13 @@
+---
+// A number on the page, linked to the exact source line it comes from.
+import data from '../data/facts.json';
+
+interface Props {
+  k: string;
+}
+const { k } = Astro.props;
+const fact = (data.facts as Record<string, { text: string; url: string }>)[k];
+if (!fact) throw new Error(`Unknown claim "${k}"`);
+---
+
+<a class="claim" href={fact.url} data-claim={k}>{fact.text}</a>

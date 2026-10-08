@@ -1,0 +1,170 @@
+---
+import Base from '../layouts/Base.astro';
+import data from '../data/facts.json';
+
+type Table = { header: string[]; rows: { cells: string[]; url: string }[] };
+const t = data.tables as Record<string, Table>;
+
+// One explorer panel per project; each table is rendered straight from its source file.
+const panels = [
+  {
+    id: 'aep',
+    title: 'Agent Eval Platform',
+    note: 'From docs/RESULTS.md. Full conversations are graded by the official evaluator; targeted tests use checks fixed in advance on selected cases and are never success rates. Spend marked UB is the usage-based upper bound (every prompt token at full price); “billed” counts cached tokens at the cached rate and became the basis after H005.',
+    groups: [
+      { id: 'full', label: 'Full conversations', table: t.aepFull },
+      { id: 'targeted', label: 'Targeted tests', table: t.aepTargeted },
+      { id: 'defects', label: 'Defects found and fixed', table: t.aepDefects },
+      { id: 'spend', label: 'Spend', table: t.aepSpend },
+    ],
+  },
+  {
+    id: 'ptl',
+    title: 'Post-Training Lab',
+    note: 'The retry ladder from docs/LAB_NOTEBOOK.md: how much training adds as the verifier-guided scaffold gets more tries.',
+    groups: [{ id: 'ladder', label: 'Retry ladder', table: t.ptlLadder }],
+  },
+  {
+    id: 'scr',
+    title: 'Code-review LoRA',
+    note: 'From docs/RESULTS.md: SFT v4 against the base model and the earlier v3, 200-sample in-distribution eval.',
+    groups: [{ id: 'scr', label: 'SFT v4 vs base', table: t.scr }],
+  },
+];
+---
+
+<Base
+  title="Results explorer · Nidhi Rajani"
+  description="Every experiment, defect and score from agent-eval-platform, post-training-lab and the code-review LoRA, rendered straight from the source files and linked to each line."
+>
+  <section class="wrap hero">
+    <p class="eyebrow">Results explorer</p>
+    <h1>The full record, not the highlights</h1>
+    <p class="lede">
+      These tables are generated from the projects' own result files at a fixed commit, so they can't drift from the
+      evidence. Each row's first cell links to the line it was read from. Search, filter or sort as you like.
+    </p>
+
+    <div class="tabs" role="tablist" aria-label="Project" data-tabs hidden>
+      {panels.map((p, i) => (
+        <button class="chip-btn" role="tab" type="button" aria-selected={i === 0 ? 'true' : 'false'} aria-pressed={i === 0 ? 'true' : 'false'} aria-controls={`panel-${p.id}`} data-tab={p.id}>{p.title}</button>
+      ))}
+    </div>
+
+    {panels.map((p) => (
+      <div class="panel" id={`panel-${p.id}`} role="tabpanel" data-panel={p.id}>
+        <h2 id={p.id}>{p.title}</h2>
+        <p class="muted small">{p.note}</p>
+        <div class="toolbar">
+          <input type="search" placeholder="Search these rows…" aria-label={`Search ${p.title} results`} data-search />
+          {p.groups.length > 1 && (
+            <span role="group" aria-label="Show" style="display:contents">
+              <button class="chip-btn" type="button" aria-pressed="true" data-filter="all">All</button>
+              {p.groups.map((g) => (
+                <button class="chip-btn" type="button" aria-pressed="false" data-filter={g.id}>{g.label}</button>
+              ))}
+            </span>
+          )}
+          <span class="count" aria-live="polite" data-count></span>
+        </div>
+        {p.groups.map((g) => (
+          <div class="group" data-group={g.id} style="margin-bottom:1.75rem">
+            <h3>{g.label}</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>{g.table.header.map((h, i) => <th scope="col"><button type="button" data-sort={i}>{h}</button></th>)}</tr>
+                </thead>
+                <tbody>
+                  {g.table.rows.map((r) => (
+                    <tr>
+                      {r.cells.map((c, i) => (i === 0 ? <td><a class="claim" href={r.url}>{c}</a></td> : <td>{c}</td>))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    ))}
+  </section>
+</Base>
+
+<script>
+  // Progressive enhancement: without JS every table is visible; with JS you get tabs, search, filters and sorting.
+  const tabs = document.querySelector<HTMLElement>('[data-tabs]');
+  const panels = [...document.querySelectorAll<HTMLElement>('[data-panel]')];
+  const show = (id: string) => {
+    panels.forEach((p) => (p.hidden = p.dataset.panel !== id));
+    tabs?.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((b) => {
+      const on = b.dataset.tab === id;
+      b.setAttribute('aria-selected', String(on));
+      b.setAttribute('aria-pressed', String(on));
+    });
+  };
+  if (tabs) {
+    tabs.hidden = false;
+    tabs.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-tab]');
+      if (b?.dataset.tab) { show(b.dataset.tab); history.replaceState(null, '', `#${b.dataset.tab}`); }
+    });
+    const start = location.hash.slice(1);
+    show(panels.some((p) => p.dataset.panel === start) ? start : panels[0].dataset.panel!);
+  }
+
+  for (const panel of panels) {
+    const search = panel.querySelector<HTMLInputElement>('[data-search]')!;
+    const count = panel.querySelector<HTMLElement>('[data-count]')!;
+    let filter = 'all';
+    const apply = () => {
+      const q = search.value.trim().toLowerCase();
+      let shown = 0;
+      panel.querySelectorAll<HTMLElement>('[data-group]').forEach((g) => {
+        const inFilter = filter === 'all' || g.dataset.group === filter;
+        let visible = 0;
+        g.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((tr) => {
+          const ok = inFilter && (!q || tr.textContent!.toLowerCase().includes(q));
+          tr.hidden = !ok;
+          if (ok) visible++;
+        });
+        g.hidden = !inFilter || visible === 0;
+        shown += visible;
+      });
+      count.textContent = `${shown} row${shown === 1 ? '' : 's'}`;
+    };
+    search.addEventListener('input', apply);
+    panel.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((b) =>
+      b.addEventListener('click', () => {
+        filter = b.dataset.filter!;
+        panel.querySelectorAll('[data-filter]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        apply();
+      }),
+    );
+    // A column sorts numerically only when every cell leads with a number ("$0.60 UB", "+21.3", "26.3%");
+    // otherwise it sorts as text, with digit runs compared by value (H002 < H010).
+    const lead = (s: string) => {
+      const m = s.replace(/,/g, '').match(/^[~≈]?\s*([+\-−]?)\s*\$?(\d+(?:\.\d+)?)/);
+      return m ? (m[1] && m[1] !== '+' ? -1 : 1) * parseFloat(m[2]) : NaN;
+    };
+    panel.querySelectorAll<HTMLButtonElement>('[data-sort]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const table = b.closest('table')!;
+        const th = b.closest('th')!;
+        const col = Number(b.dataset.sort);
+        const asc = th.getAttribute('aria-sort') !== 'ascending';
+        table.querySelectorAll('th').forEach((x) => x.removeAttribute('aria-sort'));
+        th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
+        const rows = [...table.tBodies[0].rows];
+        const text = (r: HTMLTableRowElement) => r.cells[col].textContent!.trim();
+        const numeric = rows.every((r) => !Number.isNaN(lead(text(r))));
+        rows.sort((x, y) => {
+          const r = numeric ? lead(text(x)) - lead(text(y)) : text(x).localeCompare(text(y), undefined, { numeric: true, sensitivity: 'base' });
+          return asc ? r : -r;
+        });
+        rows.forEach((r) => table.tBodies[0].appendChild(r));
+      }),
+    );
+    apply();
+  }
+</script>
