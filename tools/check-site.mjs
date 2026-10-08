@@ -65,9 +65,26 @@ for (const file of files) {
 const readme = await fs.readFile('profile/README.md', 'utf8');
 for (const b of BANNED) if (readme.includes(b)) errors.push(`profile/README.md: banned string "${b}"`);
 for (const m of readme.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)) await checkLink('profile/README.md', m[1], m[2]);
+for (const m of readme.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
+  await checkLink('profile/README.md', visible(m[2]).replace(/\s+/g, ' ').trim(), decode(m[1]));
+}
+
+// Numbers drawn inside the README's cards can't carry links, so each one must come from facts.json.
+const cells = Object.values(facts.tables).flatMap((t) => [...t.header, ...t.rows.flatMap((r) => r.cells)]);
+const known = [...Object.values(facts.facts).map((x) => x.text), ...cells].flatMap((s) => numbersIn(s).map((n) => n.value))
+  .concat(Object.values(facts.verifiedUrls).flat());
+let cards = 0;
+for (const file of (await fs.readdir('profile/assets')).filter((x) => x.endsWith('.svg'))) {
+  cards++;
+  const text = visible(await fs.readFile(path.join('profile/assets', file), 'utf8'));
+  for (const b of BANNED) if (text.includes(b)) errors.push(`profile/assets/${file}: banned string "${b}"`);
+  for (const n of claimNumbers(text)) {
+    if (!matches(n, known)) errors.push(`profile/assets/${file}: shows ${n.raw}, which no fact contains`);
+  }
+}
 
 if (errors.length) {
   console.error(`check-site FAILED (${errors.length}):\n  ` + errors.join('\n  '));
   process.exit(1);
 }
-console.log(`check-site: ${pages} pages + profile README, ${verified} numeric links verified against their sources, no banned claims`);
+console.log(`check-site: ${pages} pages + profile README and ${cards} cards, ${verified} numeric links verified against their sources, no banned claims`);
